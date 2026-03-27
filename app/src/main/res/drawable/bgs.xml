@@ -1,0 +1,6 @@
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/bg"
+    android:insetTop="-60dp"
+    android:insetBottom="-50dp"
+    android:insetLeft="-590dp"
+    android:insetRight="-490dp" />

@@ -1,0 +1,22 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#D0CECE">
+
+    <ListView
+        android:id="@+id/herbListView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_above="@+id/included_panel"
+        android:layout_marginTop="12dp"
+        android:dividerHeight="8dp" />
+
+    <include
+        android:id="@+id/included_panel"
+        layout="@layout/universal_btn"
+        android:layout_width="match_parent"
+        android:layout_height="81dp"
+        android:layout_alignParentBottom="true"
+        android:layout_marginBottom="30dp" />
+
+</RelativeLayout>
