@@ -8,15 +8,15 @@
 
     <ImageView
         android:id="@+id/herb_image"
-        android:layout_width="80dp"
-        android:layout_height="80dp"
-        android:scaleType="centerCrop"
+        android:layout_width="96dp"
+        android:layout_height="126dp"
         android:layout_marginEnd="12dp"
-        android:background="@android:color/darker_gray" />
+        android:background="@android:color/darker_gray"
+        android:scaleType="centerCrop" />
 
     <LinearLayout
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
+        android:layout_height="130dp"
         android:layout_weight="1"
         android:orientation="vertical">
 
@@ -32,25 +32,24 @@
             android:id="@+id/herb_confi"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textSize="14sp"
-            android:textColor="#2E7D32" />
+            android:textColor="#2E7D32"
+            android:textSize="14sp" />
 
         <TextView
             android:id="@+id/herb_safe"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textSize="12sp"
+            android:layout_marginTop="2dp"
             android:textColor="#777"
-            android:layout_marginTop="2dp" />
+            android:textSize="12sp" />
 
         <TextView
             android:id="@+id/herb_description"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textSize="13sp"
+            android:ellipsize="end"
             android:textColor="#555"
-            android:maxLines="1"
-            android:ellipsize="end" />
+            android:textSize="13sp" />
     </LinearLayout>
 
 

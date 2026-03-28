@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#D0CECE">
+    android:background="#FFFEFE">
 
     <Button
         android:id="@+id/donebtn"
@@ -43,14 +43,15 @@
     <ScrollView
         android:id="@+id/predicscroll"
         android:layout_width="339dp"
-        android:layout_height="502dp"
+        android:layout_height="630dp"
         android:layout_marginStart="16dp"
+        android:layout_marginTop="50dp"
         android:layout_marginEnd="16dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.329"
+        app:layout_constraintVertical_bias="0.5"
 
         android:scrollbars="vertical"
         android:fadeScrollbars="false"
@@ -172,44 +173,43 @@
                 tools:layout_editor_absoluteX="40dp"
                 tools:layout_editor_absoluteY="636dp" />
 
-            <Button
-                android:id="@+id/scanagain"
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:text="Scan"
-                android:textColor="@color/white"
+                android:orientation="horizontal"
+                android:gravity="center"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintHorizontal_bias="0.253"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintVertical_bias="0.932" />
+                app:layout_constraintVertical_bias="0.95">
 
-            <Button
-                android:id="@+id/uploadbttn"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Upload"
-                android:textColor="@color/white"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintVertical_bias="0.976" />
+                <Button
+                    android:id="@+id/scanagain"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Scan"
+                    android:textColor="@color/white"
+                    android:backgroundTint="#3F51B5" />
 
-            <Button
-                android:id="@+id/classify"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Classify"
-                android:textColor="@color/white"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintHorizontal_bias="0.778"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintVertical_bias="0.91" />
+                <Button
+                    android:id="@+id/uploadbttn"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginHorizontal="8dp"
+                    android:text="Upload"
+                    android:textColor="@color/white"
+                    android:backgroundTint="#3F51B5" />
+
+                <Button
+                    android:id="@+id/classify"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Classify"
+                    android:textColor="@color/white"
+                    android:backgroundTint="#3F51B5" />
+
+            </LinearLayout>
 
         </LinearLayout>
 
