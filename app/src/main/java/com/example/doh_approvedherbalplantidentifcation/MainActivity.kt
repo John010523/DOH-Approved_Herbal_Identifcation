@@ -2,7 +2,6 @@ package com.example.doh_approvedherbalplantidentifcation
 
 
 import android.os.Looper
-import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.ColorStateList
@@ -15,28 +14,19 @@ import android.widget.ImageButton
 import android.widget.ImageView
 import androidx.appcompat.app.AppCompatActivity
 import android.animation.AnimatorInflater
-import android.annotation.SuppressLint
-import android.app.AlertDialog
 import android.graphics.BitmapFactory
 import android.util.Log
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import android.graphics.Color
 import android.graphics.Rect
-import android.hardware.camera2.CameraManager
-import android.net.Uri
 import android.widget.AdapterView
 import android.os.Handler
 import android.view.View
 import android.widget.AbsListView
 import android.widget.ArrayAdapter
-import android.widget.CheckBox
-import android.widget.EditText
 import android.widget.FrameLayout
-import android.widget.LinearLayout
 import android.widget.ListView
-import android.widget.ProgressBar
-import android.widget.RatingBar
 import android.widget.ScrollView
 import android.widget.Spinner
 import android.widget.TextView
@@ -51,16 +41,9 @@ import androidx.camera.view.PreviewView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import androidx.recyclerview.widget.RecyclerView
-import com.example.doh_approvedherbalplantidentifcation.MainActivity.Companion.sqLiteHelper
 import com.example.doh_approvedherbalplantidentifcation.NextActivity.Companion.REQUEST_CAMERA_CAPTURE
-import com.example.doh_approvedherbalplantidentifcation.databinding.ActivityMainBinding
-import com.example.doh_approvedherbalplantidentifcation.ml.HerbalRecognationSemi
 import com.example.doh_approvedherbalplantidentifcation.ml.HerbalRecognationSemifi
-import com.google.mlkit.common.model.LocalModel
 import com.google.mlkit.vision.common.InputImage
-import com.google.mlkit.vision.label.ImageLabeling
-import com.google.mlkit.vision.label.custom.CustomImageLabelerOptions
 import java.io.ByteArrayOutputStream
 import org.tensorflow.lite.support.image.ImageProcessor
 import org.tensorflow.lite.support.image.TensorImage
@@ -68,27 +51,11 @@ import org.tensorflow.lite.DataType
 import org.tensorflow.lite.support.common.ops.NormalizeOp
 import org.tensorflow.lite.support.image.ops.ResizeOp
 import org.tensorflow.lite.support.tensorbuffer.TensorBuffer
-// REMOVE THIS:
-// import org.tensorflow.lite.task.vision.detector.ObjectDetector
-
-// ADD THIS:
-import com.google.mlkit.vision.objects.ObjectDetector
-import com.google.mlkit.vision.objects.ObjectDetection
 import com.google.mlkit.vision.objects.defaults.ObjectDetectorOptions
-import java.nio.ByteBuffer
-import java.nio.ByteOrder
-import java.util.Scanner
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
-//Amo ini an Main Interface or First Activity
 class MainActivity : AppCompatActivity() {
 
     private lateinit var continuebtn: Button
     private var isReady = false // Moved here for cleaner scope
-
-    companion object {
-        lateinit var sqLiteHelper: SQLiteHelper
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // 1. MUST BE FIRST: Initialize splash screen before everything else
@@ -605,7 +572,6 @@ class HerbActivity : BaseActivity() {
     private lateinit var sqLiteHelper: SQLiteHelper
     private var herbmod = mutableListOf<HerbModel>()
     private lateinit var adapter: HerbAdapter
-    private lateinit var delete: ImageButton
 
     // Pagination variables
     private var currentOffset = 0
@@ -658,27 +624,6 @@ class HerbActivity : BaseActivity() {
 
 
     }
-    private fun showDeleteConfirmation(herbId: Int) {
-        val builder = AlertDialog.Builder(this)
-        builder.setTitle("Delete Record")
-        builder.setMessage("Are you sure you want to delete this herbal plant record?")
-
-        builder.setPositiveButton("Yes") { _, _ ->
-            val success = sqLiteHelper.deleteHerb(herbId)
-            if (success) {
-                Toast.makeText(this, "Deleted", Toast.LENGTH_SHORT).show()
-                // Refresh your UI or finish activity
-            }
-        }
-
-        builder.setNegativeButton("No") { dialog, _ ->
-            dialog.dismiss()
-        }
-
-        val alert = builder.create()
-        alert.show()
-    }
-
 }
 
 //Fifth Activity Ini na part an pag classify ha image or pag predict
@@ -701,7 +646,6 @@ class Classify : BaseActivity() {
     private lateinit var Safe: TextView
     private lateinit var labelsafe: TextView
     private lateinit var labeldesc: TextView
-    private val CAMERA_REQUEST_CODE = 100
     private val Request_Camera_Capture = REQUEST_CAMERA_CAPTURE
     private lateinit var sqLiteHelper: SQLiteHelper
     private lateinit var preplbl: TextView
@@ -823,22 +767,6 @@ class Classify : BaseActivity() {
         }
     }
 
-    private fun openCam() {
-        val cameraIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
-        if (cameraIntent.resolveActivity(packageManager) != null) {
-            startActivityForResult(cameraIntent, Request_Camera_Capture)
-        } else {
-            Toast.makeText(this, "Camera not available on this device", Toast.LENGTH_LONG).show()
-        }
-    }
-
-    private fun bitmapToByteArray(bitmap: Bitmap): ByteArray {
-        val stream = ByteArrayOutputStream()
-        bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
-        return stream.toByteArray()
-    }
-
-
     //  Run Classification tima pag deploy san model
     private fun runPrediction(bitmap: Bitmap) {
         // Load labels from assets
@@ -870,8 +798,6 @@ class Classify : BaseActivity() {
         val outputFeature0 = outputs.outputFeature0AsTensorBuffer.floatArray
 
         //  Apply softmax
-        val expScores = outputFeature0.map { kotlin.math.exp(it.toDouble()) }
-        val sumExp = expScores.sum()
         val probabilities = outputFeature0
 
         // 🔎 Log all class scores
