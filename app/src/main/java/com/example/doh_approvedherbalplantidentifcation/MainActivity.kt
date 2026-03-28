@@ -14,6 +14,8 @@ import android.widget.ImageButton
 import android.widget.ImageView
 import androidx.appcompat.app.AppCompatActivity
 import android.animation.AnimatorInflater
+import android.content.Context
+import android.content.res.Configuration
 import android.graphics.BitmapFactory
 import android.util.Log
 import androidx.core.view.ViewCompat
@@ -26,12 +28,15 @@ import android.view.View
 import android.widget.AbsListView
 import android.widget.ArrayAdapter
 import android.widget.FrameLayout
+import android.widget.GridLayout
 import android.widget.ListView
 import android.widget.ScrollView
+import android.widget.SearchView
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import androidx.annotation.LayoutRes
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
@@ -41,6 +46,7 @@ import androidx.camera.view.PreviewView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.core.widget.NestedScrollView
 import com.example.doh_approvedherbalplantidentifcation.NextActivity.Companion.REQUEST_CAMERA_CAPTURE
 import com.example.doh_approvedherbalplantidentifcation.ml.HerbalRecognationSemifi
 import com.google.mlkit.vision.common.InputImage
@@ -98,21 +104,37 @@ abstract class BaseActivity : AppCompatActivity() {
     // Changed to nullable or checked initialization to prevent "not initialized" crashes
     var btnhome: ImageButton? = null
     var btnsave: ImageButton? = null
-    var btnbrowse: ImageButton? = null
     var about: ImageButton? = null
     var scnherbs: ImageButton? = null
     var upload: ImageButton? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        val sharedPref = getSharedPreferences("Settings", Context.MODE_PRIVATE)
+        val isDarkMode = sharedPref.getBoolean("DarkMode", false)
+
+        // 2. Set the System Theme (for Status Bar/Icons)
+        if (isDarkMode) {
+            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
+        } else {
+            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
+        }
         super.onCreate(savedInstanceState)
         setContentView(layoutResourceId)
+    }
+    fun applyBackgroundColor(view: View) {
+        val sharedPref = getSharedPreferences("Settings", Context.MODE_PRIVATE)
+        val isDarkMode = sharedPref.getBoolean("Light Mode", false)
+
+        if (isDarkMode) {
+            view.setBackgroundColor(android.graphics.Color.parseColor("#121212"))
+        } else {
+            view.setBackgroundColor(android.graphics.Color.parseColor("#FFFFFF"))
+        }
     }
 
     protected fun setupNavigation() {
         // Safe lookups: if the ID doesn't exist in the current XML, it won't crash
         btnhome = findViewById(R.id.home)
-        btnsave = findViewById(R.id.btnsaved)
-        btnbrowse = findViewById(R.id.browse)
         about = findViewById(R.id.aboutus)
         scnherbs = findViewById(R.id.scnherbs)
         upload = findViewById(R.id.upload)
@@ -122,9 +144,6 @@ abstract class BaseActivity : AppCompatActivity() {
         // Only set listeners if the buttons actually exist in the layout
         btnhome?.setOnClickListener { navigateTo(NextActivity::class.java) }
         upload?.setOnClickListener { navigateTo(Classify::class.java) }
-        btnbrowse?.setOnClickListener { navigateTo(Category::class.java) }
-        btnsave?.setOnClickListener { navigateTo(HerbActivity::class.java) }
-
         scnherbs?.setOnClickListener {
             // FIX: If we are already in ScannerActivity, do nothing!
             if (this !is ScannerActivity) {
@@ -148,8 +167,6 @@ abstract class BaseActivity : AppCompatActivity() {
         // Use ?.isSelected because these might be null in some layouts
         btnhome?.isSelected = (this is NextActivity)
         upload?.isSelected = (this is Classify)
-        btnbrowse?.isSelected = (this is Category)
-        btnsave?.isSelected = (this is HerbActivity)
         scnherbs?.isSelected = (this is ScannerActivity)
     }
 }
@@ -158,10 +175,12 @@ class NextActivity : BaseActivity() { // CHANGED THIS
 
     override val layoutResourceId: Int = R.layout.second_activity
 
+
+
     companion object {
         const val REQUEST_CAMERA_CAPTURE = 101
     }
-    private val handler = Handler(Looper.getMainLooper())
+    //private val handler = Handler(Looper.getMainLooper())
     private lateinit var frontimg: ImageView
     private lateinit var frame: FrameLayout
 
@@ -176,10 +195,52 @@ class NextActivity : BaseActivity() { // CHANGED THIS
         frontimg = findViewById(R.id.front)
         frame = findViewById(R.id.fl)
 
-        startSingleImageFlip()
+        //startSingleImageFlip()
+
+        val browsing = findViewById<TextView>(R.id.browsee)
+        browsing.setOnClickListener {
+            val intent = Intent(this, Category::class.java)
+            startActivity(intent)
+        }
+        val sav = findViewById<TextView>(R.id.saved)
+        sav.setOnClickListener {
+            val intent = Intent(this, HerbActivity::class.java)
+            startActivity(intent)
+        }
+
+    }
+    override fun onResume() {
+        super.onResume()
+        // Call your permission check whenever the app comes to the foreground
+        val second = findViewById<View>(R.id.second) // Ensure your XML root has this ID
+        applyBackgroundColor(second)
+        val h = findViewById<TextView>(R.id.heybud)
+
+        val darkModeToggle = findViewById<androidx.appcompat.widget.SwitchCompat>(R.id.dark_mode_toggle)
+
+        darkModeToggle.setOnCheckedChangeListener { _, isChecked ->
+            val sharedPref = getSharedPreferences("Settings", Context.MODE_PRIVATE)
+            val editor = sharedPref.edit()
+            editor.putBoolean("Dark Mode", isChecked)
+            editor.apply()
+
+            // 1. Manually change the colors WITHOUT recreate()
+            if (isChecked) {
+                second.setBackgroundColor(android.graphics.Color.parseColor("#121212"))
+                darkModeToggle.setTextColor(android.graphics.Color.parseColor("#FFFFFF"))
+                h.setTextColor(android.graphics.Color.parseColor("#FFFFFF"))
+                darkModeToggle.setText("Light Mode")
+            } else {
+                second.setBackgroundColor(android.graphics.Color.parseColor("#FFFFFF"))
+                darkModeToggle.setTextColor(android.graphics.Color.parseColor("#121212"))
+                h.setTextColor(android.graphics.Color.parseColor("#121212"))
+                darkModeToggle.setText("Dark Mode")
+            }
+        }
     }
 
-    private fun startSingleImageFlip() {
+
+    /*private fun startSingleImageFlip() {
         val flipInterval = 3000L
         handler.post(object : Runnable {
             override fun run() {
@@ -188,8 +249,7 @@ class NextActivity : BaseActivity() { // CHANGED THIS
                 flip.start()
                 handler.postDelayed(this, flipInterval)
             }
-        })
-    }
+        })*/
 }
 
 // Third activity for browsing
@@ -571,6 +631,7 @@ class HerbActivity : BaseActivity() {
     private lateinit var herblist: ListView
     private lateinit var sqLiteHelper: SQLiteHelper
     private var herbmod = mutableListOf<HerbModel>()
+
     private lateinit var adapter: HerbAdapter
 
     // Pagination variables
@@ -583,6 +644,9 @@ class HerbActivity : BaseActivity() {
         setContentView(R.layout.herblistview)
 
         setupNavigation()
+
+
+
         herblist = findViewById(R.id.herbListView)
         sqLiteHelper = SQLiteHelper(this)
 
@@ -621,9 +685,13 @@ class HerbActivity : BaseActivity() {
         } finally {
             isLoading = false
         }
-
-
     }
+
+    override fun onResume() {
+        super.onResume()
+        applyBackgroundColor(findViewById(R.id.herb_list))
+    }
+
 }
 
 //Fifth Activity Ini na part an pag classify ha image or pag predict
@@ -702,7 +770,7 @@ class Classify : BaseActivity() {
             intent.type = "image/*"
             startActivityForResult(intent, SELECT_IMAGE)
             Imglabel.setText(" ")
-            Desc.setText(" ")
+            labeldesc.setText(" ")
             Safe.setText(" ")
             preplbl.setText("")
         }
@@ -894,7 +962,7 @@ class Classify : BaseActivity() {
                 prepar.visibility = View.VISIBLE
                 preplbl.visibility = View.VISIBLE
                 name.visibility = View.VISIBLE
-                Desc.text = description
+                labeldesc.text = description
                 Safe.text = safety_warning
                 preplbl.text = preparation
 

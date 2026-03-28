@@ -10,6 +10,29 @@
 
     </style>
 
+    <style name="SearchViewBlackText">
+        <item name="android:editTextColor">@color/black</item>
+        <item name="android:textColorHint">#80000000</item>
+    </style>
+
+    <style name="SearchViewBlackMode">
+        <item name="colorControlNormal">@color/black</item>
+
+        <item name="android:editTextColor">@color/black</item>
+        <item name="android:textColorHint">#88000000</item>
+
+        <item name="android:colorControlActivated">@color/black</item>
+    </style>
+
+    <style name="PlantLabelStyle">
+        <item name="android:background">#757575</item>
+        <item name="android:textColor">#FFFFFF</item>
+        <item name="android:gravity">center</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:padding">4dp</item>
+    </style>
+
     <style name="Theme.DOHApprovedHerbalPlantIdentifcation" parent="Base.Theme.DOHApprovedHerbalPlantIdentifcation" />
 
     <style name="Theme.App.Starting" parent="Theme.SplashScreen">
