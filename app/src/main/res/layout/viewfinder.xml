@@ -15,7 +15,7 @@
         android:id="@+id/targetBox"
         android:layout_width="250dp"
         android:layout_height="250dp"
-        android:background="@drawable/scanner_bracket"
+        android:background="@drawable/scanner_design"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -40,21 +40,19 @@
         android:layout_marginBottom="8dp"
         android:background="@drawable/sss"
         android:backgroundTintMode="src_in"
+        android:visibility="invisible"
+        android:clickable="false"
         app:layout_constraintBottom_toTopOf="@+id/txtScanLabel"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
-    <TextView
-        android:id="@+id/txtScanLabel"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="32dp"
-        android:text="Start Scan"
-        android:textColor="#FFFFFF"
-        android:textSize="16sp"
-        android:textStyle="bold"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="@+id/Scan"
-        app:layout_constraintStart_toStartOf="@+id/Scan" />
+
+    <include
+        android:id="@+id/included_panel"
+        layout="@layout/universal_btn"
+        android:layout_width="match_parent"
+        android:layout_height="81dp"
+        android:layout_marginBottom="30dp"
+        app:layout_constraintBottom_toBottomOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

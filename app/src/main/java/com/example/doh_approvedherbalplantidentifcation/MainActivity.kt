@@ -41,6 +41,7 @@ import android.widget.ScrollView
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
+import androidx.annotation.LayoutRes
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
@@ -124,58 +125,71 @@ class MainActivity : AppCompatActivity() {
 // BaseActivity.kt
 abstract class BaseActivity : AppCompatActivity() {
 
-    lateinit var btnsave: ImageButton
-    lateinit var btnbrowse: ImageButton
-    lateinit var about: ImageButton
-    lateinit var scnherbs: ImageButton
-    lateinit var upload: ImageButton
+    @get:LayoutRes
+    protected abstract val layoutResourceId: Int
+
+    // Changed to nullable or checked initialization to prevent "not initialized" crashes
+    var btnhome: ImageButton? = null
+    var btnsave: ImageButton? = null
+    var btnbrowse: ImageButton? = null
+    var about: ImageButton? = null
+    var scnherbs: ImageButton? = null
+    var upload: ImageButton? = null
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(layoutResourceId)
+    }
 
     protected fun setupNavigation() {
+        // Safe lookups: if the ID doesn't exist in the current XML, it won't crash
+        btnhome = findViewById(R.id.home)
         btnsave = findViewById(R.id.btnsaved)
         btnbrowse = findViewById(R.id.browse)
         about = findViewById(R.id.aboutus)
         scnherbs = findViewById(R.id.scnherbs)
         upload = findViewById(R.id.upload)
 
-        // Highlight kung nasaan kang Activity ngayon
         updateButtonSelection()
 
-        upload.setOnClickListener { navigateTo(Classify::class.java) }
-        btnbrowse.setOnClickListener { navigateTo(Category::class.java) }
-        btnsave.setOnClickListener { navigateTo(HerbActivity::class.java) }
-        scnherbs.setOnClickListener { navigateTo(ScannerActivity::class.java) }
-        // about.setOnClickListener { navigateTo(AboutActivity::class.java) }
+        // Only set listeners if the buttons actually exist in the layout
+        btnhome?.setOnClickListener { navigateTo(NextActivity::class.java) }
+        upload?.setOnClickListener { navigateTo(Classify::class.java) }
+        btnbrowse?.setOnClickListener { navigateTo(Category::class.java) }
+        btnsave?.setOnClickListener { navigateTo(HerbActivity::class.java) }
+
+        scnherbs?.setOnClickListener {
+            // FIX: If we are already in ScannerActivity, do nothing!
+            if (this !is ScannerActivity) {
+                navigateTo(ScannerActivity::class.java)
+            }
+        }
     }
 
     private fun navigateTo(cls: Class<*>) {
-        // 1. Check kung nandoon ka na sa Activity na pipindutin mo para hindi paulit-ulit
         if (this::class.java == cls) return
 
         val intent = Intent(this, cls)
-
-        // 2. Eto ang "Magic": I-clear ang previous activities para laging bago ang scene
+        // This flag clears the stack; use it carefully
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-
         startActivity(intent)
-
-        // 3. Tanggalin ang transition animation para magmukhang "global" talaga
         overridePendingTransition(0, 0)
-
-        // 4. Tapusin ang current activity para "mag-close" siya automatic
         finish()
     }
 
     private fun updateButtonSelection() {
-        // Auto-select ang button depende sa kung anong Activity ang active
-        upload.isSelected = (this is Classify)
-        btnbrowse.isSelected = (this is Category)
-        btnsave.isSelected = (this is HerbActivity)
-        scnherbs.isSelected = (this is ScannerActivity)
-        // about.isSelected = (this is AboutActivity)
+        // Use ?.isSelected because these might be null in some layouts
+        btnhome?.isSelected = (this is NextActivity)
+        upload?.isSelected = (this is Classify)
+        btnbrowse?.isSelected = (this is Category)
+        btnsave?.isSelected = (this is HerbActivity)
+        scnherbs?.isSelected = (this is ScannerActivity)
     }
 }
 //second activity layout
 class NextActivity : BaseActivity() { // CHANGED THIS
+
+    override val layoutResourceId: Int = R.layout.second_activity
 
     companion object {
         const val REQUEST_CAMERA_CAPTURE = 101
@@ -213,6 +227,8 @@ class NextActivity : BaseActivity() { // CHANGED THIS
 
 // Third activity for browsing
 class Category : BaseActivity()    {
+
+    override val layoutResourceId: Int = R.layout.category
 
     private lateinit var category_spinner: Spinner
     private lateinit var category_background: ImageView
@@ -583,6 +599,8 @@ class Category : BaseActivity()    {
 //Fourth Activity Ddi makita an saved predicted or classified photos
 class HerbActivity : BaseActivity() {
 
+    override val layoutResourceId: Int = R.layout.herblistview
+
     private lateinit var herblist: ListView
     private lateinit var sqLiteHelper: SQLiteHelper
     private var herbmod = mutableListOf<HerbModel>()
@@ -665,6 +683,8 @@ class HerbActivity : BaseActivity() {
 
 //Fifth Activity Ini na part an pag classify ha image or pag predict
 class Classify : BaseActivity() {
+
+    override val layoutResourceId: Int = R.layout.captured_analysis
 
     companion object {
         const val SELECT_IMAGE = 101
@@ -761,6 +781,9 @@ class Classify : BaseActivity() {
         }
 
         Donebtn.setOnClickListener {
+            val intent = Intent(this, HerbActivity::class.java) // Replace MainActivity with your home class name
+            intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            startActivity(intent)
             finish()
         }
         Scanagain.setOnClickListener {
@@ -1046,19 +1069,25 @@ class Classify : BaseActivity() {
 
 }
 // Real-Time Scanner
-class ScannerActivity : AppCompatActivity() {
+// Change AppCompatActivity to BaseActivity
+class ScannerActivity : BaseActivity() {
 
     private lateinit var Scan: ImageButton
     private lateinit var Prev: PreviewView
     private lateinit var Txtres: TextView
     private lateinit var view: View
-    private lateinit var txt: TextView
+    private lateinit var herbalModel: HerbalRecognationSemifi
+    private lateinit var objectDetector: com.google.mlkit.vision.objects.ObjectDetector
+    private var herbalLabels: List<String> = emptyList()
 
+    // Added your requested override variable
+    override val layoutResourceId: Int = R.layout.viewfinder
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.viewfinder)
 
-        // 1. Initialize your model FIRST
+        setupNavigation()
+
         setupHerbalModel()
         loadLabels()
 
@@ -1066,64 +1095,54 @@ class ScannerActivity : AppCompatActivity() {
         Prev = findViewById<PreviewView>(R.id.Prev)
         Txtres = findViewById<TextView>(R.id.Txtres)
         view = findViewById<View>(R.id.targetBox)
-        txt = findViewById<TextView>(R.id.txtScanLabel)
 
         Scan.setOnClickListener {
             checkCameraPermission()
+
+
         }
-
     }
-
-    // 1. Declare at the top of your class
-    private lateinit var herbalModel: HerbalRecognationSemifi
 
     private fun setupHerbalModel() {
         try {
-            // This line connects to the file in your /ml folder
             herbalModel = HerbalRecognationSemifi.newInstance(this)
-
-            // Setup the Object Detector to find and track the plant
             val options = ObjectDetectorOptions.Builder()
                 .setDetectorMode(ObjectDetectorOptions.STREAM_MODE)
-                .enableClassification() // Helps identify general objects to track
+                .enableClassification()
                 .build()
-
-            objectDetector = ObjectDetection.getClient(options)
-
-            Log.d("Scanner", "Model loaded from ML folder and Tracker ready")
+            objectDetector = com.google.mlkit.vision.objects.ObjectDetection.getClient(options)
         } catch (e: Exception) {
             Log.e("Scanner", "Initialization failed: ${e.message}")
-            Toast.makeText(this, "Failed to load model from ML folder", Toast.LENGTH_LONG).show()
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        // Call your permission check whenever the app comes to the foreground
+        checkCameraPermission()
+    }
+
     private fun checkCameraPermission() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
-            == PackageManager.PERMISSION_GRANTED) {
+        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
             startCamera()
         } else {
-            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.CAMERA), 101)
+            ActivityCompat.requestPermissions(this, arrayOf(android.Manifest.permission.CAMERA), 101)
         }
     }
 
     private fun startCamera() {
         Scan.visibility = View.GONE
-        txt.setText("Capture")
         Prev.visibility = View.VISIBLE
 
-
         val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
-
         cameraProviderFuture.addListener({
             val cameraProvider = cameraProviderFuture.get()
-
             val preview = Preview.Builder().build().also {
                 it.setSurfaceProvider(Prev.surfaceProvider)
             }
 
             val imageAnalysis = ImageAnalysis.Builder()
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                // Ensure output is in a format ML Kit likes
                 .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_YUV_420_888)
                 .build()
 
@@ -1131,38 +1150,32 @@ class ScannerActivity : AppCompatActivity() {
                 processImageProxy(imageProxy)
             }
 
-            val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
-
             try {
                 cameraProvider.unbindAll()
-                cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageAnalysis)
+                cameraProvider.bindToLifecycle(this, CameraSelector.DEFAULT_BACK_CAMERA, preview, imageAnalysis)
             } catch (exc: Exception) {
                 Log.e("Scanner", "Use case binding failed", exc)
             }
+            setupNavigation()
         }, ContextCompat.getMainExecutor(this))
-    }
-
-    private lateinit var objectDetector: com.google.mlkit.vision.objects.ObjectDetector
-
-    private fun setupObjectDetector() {
-        // Initialize ML Kit Object Detector (Base model to find "where" the object is)
-        val options = ObjectDetectorOptions.Builder()
-            .setDetectorMode(ObjectDetectorOptions.STREAM_MODE)
-            .enableClassification() // We use this to find the object
-            .build()
-        objectDetector = ObjectDetection.getClient(options)
     }
 
     @androidx.annotation.OptIn(androidx.camera.core.ExperimentalGetImage::class)
     private fun processImageProxy(imageProxy: ImageProxy) {
         val mediaImage = imageProxy.image ?: return
-        val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
+        val rotation = imageProxy.imageInfo.rotationDegrees
+        val image = InputImage.fromMediaImage(mediaImage, rotation)
 
         objectDetector.process(image)
             .addOnSuccessListener { objects ->
+                updateTargetBoxToCenter()
+
                 if (objects.isEmpty()) {
-                    runOnUiThread { Txtres.text = "Look for a Plant..." }
-                    Txtres.setTextColor(Color.GREEN)
+                    runOnUiThread {
+                        Txtres.text = "Align plant in box..."
+                        Txtres.setTextColor(Color.WHITE)
+                        view.alpha = 0.5f
+                    }
                     imageProxy.close()
                     return@addOnSuccessListener
                 }
@@ -1170,14 +1183,44 @@ class ScannerActivity : AppCompatActivity() {
                 for (detectedObject in objects) {
                     val boundingBox = detectedObject.boundingBox
 
-                    // Update the UI box so you see what the AI sees
-                    updateTargetBoxPosition(boundingBox, imageProxy)
+                    val isRotated = rotation == 90 || rotation == 270
+                    val frameWidth = if (isRotated) imageProxy.height.toFloat() else imageProxy.width.toFloat()
+                    val frameHeight = if (isRotated) imageProxy.width.toFloat() else imageProxy.height.toFloat()
 
-                    // Get the bitmap and CROP it to the leaf area
-                    val fullBitmap = Prev.bitmap
-                    if (fullBitmap != null) {
-                        val croppedBitmap = cropBitmap(fullBitmap, boundingBox)
-                        runHerbalModel(croppedBitmap)
+                    val scaleX = frameWidth / Prev.width.toFloat()
+                    val scaleY = frameHeight / Prev.height.toFloat()
+
+                    val targetBoxInImage = Rect(
+                        (view.left * scaleX).toInt(),
+                        (view.top * scaleY).toInt(),
+                        (view.right * scaleX).toInt(),
+                        (view.bottom * scaleY).toInt()
+                    )
+
+                    if (targetBoxInImage.contains(boundingBox.centerX(), boundingBox.centerY())) {
+                        runOnUiThread { view.alpha = 1.0f }
+
+                        val fullBitmap = Prev.bitmap
+                        if (fullBitmap != null) {
+                            val bitmapScaleX = fullBitmap.width.toFloat() / frameWidth
+                            val bitmapScaleY = fullBitmap.height.toFloat() / frameHeight
+
+                            val scaledRect = Rect(
+                                (boundingBox.left * bitmapScaleX).toInt(),
+                                (boundingBox.top * bitmapScaleY).toInt(),
+                                (boundingBox.right * bitmapScaleX).toInt(),
+                                (boundingBox.bottom * bitmapScaleY).toInt()
+                            )
+
+                            val croppedBitmap = cropBitmap(fullBitmap, scaledRect)
+                            runHerbalModel(croppedBitmap)
+                        }
+                    } else {
+                        runOnUiThread {
+                            Txtres.text = "Move plant into the scanner"
+                            Txtres.setTextColor(Color.YELLOW)
+                            view.alpha = 0.3f
+                        }
                     }
                 }
             }
@@ -1185,70 +1228,52 @@ class ScannerActivity : AppCompatActivity() {
             .addOnCompleteListener { imageProxy.close() }
     }
 
-    private fun updateTargetBoxPosition(rect: Rect, imageProxy: ImageProxy) {
+    private fun updateTargetBoxToCenter() {
         runOnUiThread {
-            // Mapping camera coordinates to screen coordinates
-            val scaleX = Prev.width.toFloat() / imageProxy.height.toFloat()
-            val scaleY = Prev.height.toFloat() / imageProxy.width.toFloat()
+            val size = (Prev.width * 0.75).toInt()
 
-            val left = rect.left * scaleX
-            val top = rect.top * scaleY
-            val right = rect.right * scaleX
-            val bottom = rect.bottom * scaleY
+            if (view.layoutParams.width != size) {
+                val params = view.layoutParams
+                params.width = size
+                params.height = size
+                view.layoutParams = params
+                view.setBackgroundResource(R.drawable.scanner_design)
+            }
 
-            view.x = left
-            view.y = top
-            view.layoutParams.width = (right - left).toInt()
-            view.layoutParams.height = (bottom - top).toInt()
+            val centerX = (Prev.width / 2f) - (size / 2f)
+            val centerY = (Prev.height / 2f) - (size / 2f)
+
+            view.x = Prev.left + centerX
+            view.y = Prev.top + centerY
+
             view.visibility = View.VISIBLE
-            view.requestLayout()
         }
     }
 
     fun cropBitmap(source: Bitmap, rect: Rect): Bitmap {
-        val left = maxOf(0, rect.left)
-        val top = maxOf(0, rect.top)
-        val width = minOf(source.width - left, rect.width())
-        val height = minOf(source.height - top, rect.height())
+        val left = rect.left.coerceIn(0, source.width - 1)
+        val top = rect.top.coerceIn(0, source.height - 1)
+        val width = rect.width().coerceAtMost(source.width - left)
+        val height = rect.height().coerceAtMost(source.height - top)
 
-        return if (width > 0 && height > 0) {
+        return if (width > 10 && height > 10) {
             Bitmap.createBitmap(source, left, top, width, height)
         } else source
     }
 
-    private var herbalLabels: List<String> = emptyList()
-
     private fun loadLabels() {
         try {
-            // FIX: Ensure this matches your filename in the assets folder exactly (labels.txt)
             val inputStream = assets.open("label.txt")
-            val reader = inputStream.bufferedReader()
-            herbalLabels = reader.readLines().filter { it.isNotBlank() }
-
-            if (herbalLabels.isNotEmpty()) {
-                //Log.d("Scanner", "Loaded ${herbalLabels.size} labels")
-                // This Toast will tell you exactly how many plants the app recognized from your file
-                runOnUiThread {
-                    //Toast.makeText(this, "Labels Loaded: ${herbalLabels.size}", Toast.LENGTH_SHORT).show()
-                }
-            }
-
-
+            herbalLabels = inputStream.bufferedReader().readLines().filter { it.isNotBlank() }
         } catch (e: Exception) {
             Log.e("Scanner", "Error: ${e.message}")
-            runOnUiThread {
-                // This will show on your screen if the file is missing or misspelled
-                Txtres.text = "File Not Found: labels.txt"
-            }
         }
-
     }
-    // Inside ScannerActivity class
+
     private fun runHerbalModel(bitmap: Bitmap) {
-        // Prepare Bitmap for your model (180x180)
         val scaledBitmap = Bitmap.createScaledBitmap(bitmap, 180, 180, true)
-        val inputFeature0 = TensorBuffer.createFixedSize(intArrayOf(1, 180, 180, 3), DataType.FLOAT32)
-        val byteBuffer = ByteBuffer.allocateDirect(4 * 180 * 180 * 3).order(ByteOrder.nativeOrder())
+        val inputFeature0 = org.tensorflow.lite.support.tensorbuffer.TensorBuffer.createFixedSize(intArrayOf(1, 180, 180, 3), org.tensorflow.lite.DataType.FLOAT32)
+        val byteBuffer = java.nio.ByteBuffer.allocateDirect(4 * 180 * 180 * 3).order(java.nio.ByteOrder.nativeOrder())
 
         val intValues = IntArray(180 * 180)
         scaledBitmap.getPixels(intValues, 0, 180, 0, 0, 180, 180)
@@ -1269,19 +1294,17 @@ class ScannerActivity : AppCompatActivity() {
                 val confidence = scores[maxIndex]
                 val detectedLabel = herbalLabels[maxIndex]
 
-                // CHECK: High confidence AND not labeled as "Invalid"
-                if (confidence > 0.6f && !detectedLabel.equals("Invalid!", ignoreCase = true)) {
-                    // PLANT DETECTED -> GREEN
-                    Txtres.text = "$detectedLabel (${(confidence * 100).toInt()}%)"
-                    Txtres.setTextColor(Color.GREEN)
-                } else if (detectedLabel.equals("Invalid!", ignoreCase = true)) {
-                    // EXPLICITLY INVALID -> RED
-                    Txtres.text = "Invalid Result"
-                    Txtres.setTextColor(Color.RED)
+                if (confidence > 0.65f) {
+                    if (detectedLabel.contains("Invalid!", ignoreCase = true)) {
+                        Txtres.text = "Invalid: Not a recognized plant"
+                        Txtres.setTextColor(Color.RED)
+                    } else {
+                        Txtres.text = "$detectedLabel (${(confidence * 100).toInt()}%)"
+                        Txtres.setTextColor(Color.GREEN)
+                    }
                 } else {
-                    // LOW CONFIDENCE / STILL SEARCHING -> RED
-                    Txtres.text = "Searching..."
-                    Txtres.setTextColor(Color.GREEN)
+                    Txtres.text = "Analyzing..."
+                    Txtres.setTextColor(Color.CYAN)
                 }
             }
         }
